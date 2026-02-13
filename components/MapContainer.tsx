@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Cafe, MapClickEvent } from '../types';
 import { DEFAULT_CENTER } from '../constants';
-import { Search, Loader2, MapPin } from 'lucide-react';
+import { Search, Loader2, MapPin, Plus } from 'lucide-react';
 
 interface MapContainerProps {
   cafes: Cafe[];
@@ -255,6 +255,7 @@ const MapContainer: React.FC<MapContainerProps> = ({
                 }
             }
         };
+        // 直接跳出新增表單，而不只是跳地圖
         onPlaceSelect(place);
     }
     setSearchQuery('');
@@ -285,13 +286,125 @@ const MapContainer: React.FC<MapContainerProps> = ({
                         key={result.place_id}
                         onClick={() => handleSelectResult(result)}
                         className="search-item"
+                        style={{
+                          padding: '0.75rem 1.25rem',
+                          borderBottom: '1px solid #f3f4f6',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '0.5rem'
+                        }}
                     >
-                        <div style={{ fontWeight: 'bold', color: '#5D4037' }}>{result.display_name.split(',')[0]}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{result.display_name}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 'bold', color: '#5D4037' }}>
+                            {result.display_name.split(',')[0]}
+                          </div>
+                          <div style={{ 
+                            fontSize: '0.75rem', 
+                            color: '#888', 
+                            whiteSpace: 'nowrap', 
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis',
+                            marginTop: '0.25rem'
+                          }}>
+                            {result.display_name}
+                          </div>
+                        </div>
+                        <div 
+                          style={{
+                            background: '#5D4037',
+                            color: 'white',
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0
+                          }}
+                        >
+                          新增
+                        </div>
                     </div>
                 ))}
             </div>
         )}
+      </div>
+
+      {/* 浮動按鈕區域 */}
+      <div style={{
+        position: 'absolute',
+        bottom: '2rem',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.75rem',
+        alignItems: 'center'
+      }}>
+        {/* 提示文字（只在沒有搜尋時顯示）*/}
+        {searchQuery.length === 0 && !showResults && (
+          <div style={{
+            background: 'rgba(0, 0, 0, 0.7)',
+            color: 'white',
+            padding: '0.5rem 1rem',
+            borderRadius: '8px',
+            fontSize: '0.8rem',
+            textAlign: 'center',
+            maxWidth: '200px',
+            animation: 'pulse 2s infinite'
+          }}>
+            💡 點擊「+」新增咖啡廳
+          </div>
+        )}
+        
+        {/* 快速新增按鈕 */}
+        <button
+          onClick={() => {
+            if (mapInstanceRef.current) {
+              const center = mapInstanceRef.current.getCenter();
+              const place = {
+                place_id: `manual-${Date.now()}`,
+                name: '新咖啡廳',
+                formatted_address: `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`,
+                geometry: {
+                  location: {
+                    lat: () => center.lat,
+                    lng: () => center.lng
+                  }
+                }
+              };
+              onPlaceSelect(place);
+            }
+          }}
+          style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            background: '#5D4037',
+            color: 'white',
+            border: 'none',
+            fontSize: '28px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.1)';
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.2)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+          }}
+        >
+          +
+        </button>
       </div>
       
       <div ref={mapRef} style={{ width: '100%', height: '100%' }} />

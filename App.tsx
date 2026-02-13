@@ -111,6 +111,11 @@ const App: React.FC = () => {
     };
     setSelectedCafe(newCafe);
     setIsNewCafe(true);
+    
+    // 在手機上自動關閉側邊欄，讓表單更清楚
+    if (window.innerWidth < 768) {
+      setIsSidebarOpen(false);
+    }
   };
 
   const handleSaveCafe = (cafe: Cafe) => {
