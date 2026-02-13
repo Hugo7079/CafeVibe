@@ -42,6 +42,35 @@ const MapContainer: React.FC<MapContainerProps> = ({
   const [showResults, setShowResults] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
+  // 把 Nominatim address 物件轉成台灣格式地址
+  // 例如：新竹市東區公道五路二段318號
+  const formatTWAddress = (a: any): string => {
+    const city = a.city || a.town || a.county || '';
+    const district = a.city_district || a.suburb || a.borough || '';
+    const road = a.road || a.pedestrian || a.neighbourhood || '';
+    const houseNumber = a.house_number || '';
+    
+    // 台灣地址格式：縣市 + 區 + 路名 + 門牌號
+    const parts = [city, district, road, houseNumber ? `${houseNumber}號` : ''].filter(Boolean);
+    return parts.join('');
+  };
+
+  // 共用的 reverse geocode 函式
+  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=zh-TW&zoom=18`
+      );
+      const data = await res.json();
+      if (data && data.address) {
+        return formatTWAddress(data.address);
+      }
+    } catch (err) {
+      console.warn('Reverse geocode failed:', err);
+    }
+    return '';
+  };
+
   // 1. Initialize Map + Get User Location
   useEffect(() => {
     if (mapRef.current && !mapInstanceRef.current && window.L) {
@@ -66,18 +95,14 @@ const MapContainer: React.FC<MapContainerProps> = ({
       map.on('contextmenu', async (e: any) => {
         const lat = e.latlng.lat;
         const lng = e.latlng.lng;
-        // Reverse geocode to get address
         let address = '';
         try {
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=zh-TW`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=zh-TW&zoom=18`
           );
           const data = await res.json();
-          if (data && data.display_name) {
-            // 取得簡潔的台灣地址格式
-            const a = data.address || {};
-            const parts = [a.road, a.neighbourhood, a.suburb, a.city_district, a.city || a.town || a.county].filter(Boolean);
-            address = parts.length > 0 ? parts.join('') : data.display_name.split(',').slice(0, 3).join(',');
+          if (data && data.address) {
+            address = formatTWAddress(data.address);
           }
         } catch (err) {
           console.warn('Reverse geocode failed:', err);
@@ -366,24 +391,8 @@ const MapContainer: React.FC<MapContainerProps> = ({
           onClick={async () => {
             if (mapInstanceRef.current) {
               const center = mapInstanceRef.current.getCenter();
-              const lat = center.lat;
-              const lng = center.lng;
-              // Reverse geocode 取得地址
-              let address = '';
-              try {
-                const res = await fetch(
-                  `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=zh-TW`
-                );
-                const data = await res.json();
-                if (data && data.display_name) {
-                  const a = data.address || {};
-                  const parts = [a.road, a.neighbourhood, a.suburb, a.city_district, a.city || a.town || a.county].filter(Boolean);
-                  address = parts.length > 0 ? parts.join('') : data.display_name.split(',').slice(0, 3).join(',');
-                }
-              } catch (err) {
-                console.warn('Reverse geocode failed:', err);
-              }
-              onMapRightClick({ lat, lng, address });
+              const address = await reverseGeocode(center.lat, center.lng);
+              onMapRightClick({ lat: center.lat, lng: center.lng, address });
             }
           }}
           style={{
