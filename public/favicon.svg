@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Background circle for better visibility in small sizes -->
+  <circle cx="32" cy="32" r="30" fill="#FAF9F0" />
+  <!-- Coffee cup (minimal) -->
+  <g fill="#5D4037">
+    <!-- Cup body -->
+    <rect x="18" y="26" width="22" height="16" rx="4" ry="4" />
+    <!-- Handle -->
+    <path d="M44 28c4 0 6 2 6 6s-2 6-6 6h-2v-4h2c2 0 2-1 2-2s0-2-2-2h-2v-4h2z" />
+    <!-- Saucer -->
+    <rect x="16" y="42" width="28" height="4" rx="2" ry="2" />
+  </g>
+  <!-- Steam lines -->
+  <path d="M26 20c0-3 4-3 4-6" stroke="#8D6E63" stroke-width="2" fill="none" stroke-linecap="round" />
+  <path d="M34 20c0-3 4-3 4-6" stroke="#8D6E63" stroke-width="2" fill="none" stroke-linecap="round" />
+</svg>

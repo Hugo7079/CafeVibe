@@ -1,0 +1,16 @@
+{
+  "name": "跑咖｜台灣咖啡私人地圖",
+  "short_name": "跑咖",
+  "start_url": "/CafeVibe/",
+  "display": "standalone",
+  "background_color": "#FAF9F0",
+  "theme_color": "#5D4037",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
