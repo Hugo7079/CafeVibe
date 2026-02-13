@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Cafe, MapClickEvent } from '../types';
 import { DEFAULT_CENTER } from '../constants';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, MapPin } from 'lucide-react';
 
 interface MapContainerProps {
   cafes: Cafe[];
@@ -34,13 +34,15 @@ const MapContainer: React.FC<MapContainerProps> = ({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<{[id: string]: any}>({});
+  const userLocationMarkerRef = useRef<any>(null);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-  // 1. Initialize Map
+  // 1. Initialize Map + Get User Location
   useEffect(() => {
     if (mapRef.current && !mapInstanceRef.current && window.L) {
       const L = window.L;
@@ -65,11 +67,36 @@ const MapContainer: React.FC<MapContainerProps> = ({
         onMapRightClick({ lat: e.latlng.lat, lng: e.latlng.lng });
       });
 
-      // Simple geolocation to start
-      if (navigator.geolocation && cafes.length === 0) {
-        navigator.geolocation.getCurrentPosition((pos) => {
-          map.setView([pos.coords.latitude, pos.coords.longitude], 15);
-        }, () => {}, { timeout: 5000 });
+      // Get user location and show blue dot + zoom
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            setUserLocation({ lat, lng });
+            
+            // Add blue dot marker for user location
+            const userIcon = L.divIcon({
+              html: `<div style="width: 16px; height: 16px; background: #2563eb; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(37, 99, 235, 0.6);"></div>`,
+              className: 'user-location-marker',
+              iconSize: [16, 16],
+              iconAnchor: [8, 8]
+            });
+            
+            userLocationMarkerRef.current = L.marker([lat, lng], { icon: userIcon })
+              .addTo(map)
+              .bindTooltip('我的位置', { direction: 'top', offset: [0, -10], opacity: 0.8 });
+            
+            // Zoom to user location
+            map.setView([lat, lng], 15);
+          },
+          (error) => {
+            console.warn('Geolocation failed:', error);
+            // Fallback to default center
+            map.setView([DEFAULT_CENTER.lat, DEFAULT_CENTER.lng], 14);
+          },
+          { timeout: 10000, enableHighAccuracy: false }
+        );
       }
 
       mapInstanceRef.current = map;
@@ -155,30 +182,57 @@ const MapContainer: React.FC<MapContainerProps> = ({
 
   }, [cafes, selectedCafeId, onMarkerClick]);
 
-  // 3. Search Handler (OpenStreetMap Nominatim)
+  // 3. Search Handler (OpenStreetMap Nominatim) - 改進台灣地區搜尋
   useEffect(() => {
     const timer = setTimeout(async () => {
-      if (searchQuery.length < 2) {
+      if (searchQuery.length < 1) {
         setSearchResults([]);
         return;
       }
 
       setIsSearching(true);
       try {
-        // Append '台灣' context
-        const q = searchQuery.includes('台灣') ? searchQuery : `${searchQuery} 台灣`;
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&addressdetails=1`
-        );
-        const data = await response.json();
-        setSearchResults(data);
+        // 改進：自動加上「台灣」和常見行政區縮寫的擴展
+        let searchQueries = [searchQuery];
+        
+        // 如果輸入看起來像區域名稱，加上「台灣」
+        if (searchQuery.match(/[市區鎮]/)) {
+          searchQueries.push(`${searchQuery} 台灣`);
+        }
+        
+        // 試著搜尋多個變體
+        let allResults: SearchResult[] = [];
+        
+        for (const q of searchQueries) {
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=10&addressdetails=1&countrycodes=tw`
+            );
+            const data = await response.json();
+            allResults = allResults.concat(data);
+          } catch (e) {
+            console.error(`Search for "${q}" failed:`, e);
+          }
+        }
+        
+        // 去重（保留距離台灣最近的結果）
+        const seen = new Set();
+        const uniqueResults = allResults.filter((result: any) => {
+          const key = `${parseFloat(result.lat).toFixed(4)}_${parseFloat(result.lon).toFixed(4)}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        }).slice(0, 8);
+        
+        setSearchResults(uniqueResults);
         setShowResults(true);
       } catch (error) {
         console.error("Search failed", error);
+        setSearchResults([]);
       } finally {
         setIsSearching(false);
       }
-    }, 600);
+    }, 400); // 縮短延遲時間，提高反應速度
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
