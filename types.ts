@@ -32,4 +32,5 @@ export interface Cafe {
 export interface MapClickEvent {
   lat: number;
   lng: number;
+  address?: string;
 }

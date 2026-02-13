@@ -78,7 +78,7 @@ const App: React.FC = () => {
     const newCafe: Cafe = {
       id: `custom-${Date.now()}`,
       name: '',
-      address: '',
+      address: coords.address || '',
       lat: coords.lat,
       lng: coords.lng,
       itemNote: '',

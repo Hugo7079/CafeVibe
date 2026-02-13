@@ -63,8 +63,26 @@ const MapContainer: React.FC<MapContainerProps> = ({
         attribution: '&copy; OpenStreetMap &copy; CARTO'
       }).addTo(map);
 
-      map.on('contextmenu', (e: any) => {
-        onMapRightClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+      map.on('contextmenu', async (e: any) => {
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
+        // Reverse geocode to get address
+        let address = '';
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=zh-TW`
+          );
+          const data = await res.json();
+          if (data && data.display_name) {
+            // 取得簡潔的台灣地址格式
+            const a = data.address || {};
+            const parts = [a.road, a.neighbourhood, a.suburb, a.city_district, a.city || a.town || a.county].filter(Boolean);
+            address = parts.length > 0 ? parts.join('') : data.display_name.split(',').slice(0, 3).join(',');
+          }
+        } catch (err) {
+          console.warn('Reverse geocode failed:', err);
+        }
+        onMapRightClick({ lat, lng, address });
       });
 
       // Get user location and show blue dot + zoom
@@ -343,39 +361,29 @@ const MapContainer: React.FC<MapContainerProps> = ({
         gap: '0.75rem',
         alignItems: 'center'
       }}>
-        {/* 提示文字（只在沒有搜尋時顯示）*/}
-        {searchQuery.length === 0 && !showResults && (
-          <div style={{
-            background: 'rgba(0, 0, 0, 0.7)',
-            color: 'white',
-            padding: '0.5rem 1rem',
-            borderRadius: '8px',
-            fontSize: '0.8rem',
-            textAlign: 'center',
-            maxWidth: '200px',
-            animation: 'pulse 2s infinite'
-          }}>
-            💡 點擊「+」新增咖啡廳
-          </div>
-        )}
-        
         {/* 快速新增按鈕 */}
         <button
-          onClick={() => {
+          onClick={async () => {
             if (mapInstanceRef.current) {
               const center = mapInstanceRef.current.getCenter();
-              const place = {
-                place_id: `manual-${Date.now()}`,
-                name: '新咖啡廳',
-                formatted_address: `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`,
-                geometry: {
-                  location: {
-                    lat: () => center.lat,
-                    lng: () => center.lng
-                  }
+              const lat = center.lat;
+              const lng = center.lng;
+              // Reverse geocode 取得地址
+              let address = '';
+              try {
+                const res = await fetch(
+                  `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=zh-TW`
+                );
+                const data = await res.json();
+                if (data && data.display_name) {
+                  const a = data.address || {};
+                  const parts = [a.road, a.neighbourhood, a.suburb, a.city_district, a.city || a.town || a.county].filter(Boolean);
+                  address = parts.length > 0 ? parts.join('') : data.display_name.split(',').slice(0, 3).join(',');
                 }
-              };
-              onPlaceSelect(place);
+              } catch (err) {
+                console.warn('Reverse geocode failed:', err);
+              }
+              onMapRightClick({ lat, lng, address });
             }
           }}
           style={{
