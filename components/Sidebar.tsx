@@ -23,7 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({ cafes, onSelectCafe, isOpen }) => {
   return (
     <div className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
-        <h1 className="text-2xl font-bold">CafeVibe</h1>
+        <h1 className="text-2xl font-bold">跑咖</h1>
         <p className="text-xs" style={{ opacity: 0.6 }}>台灣跑咖私人地圖</p>
         
         <div className="search-input-wrapper">

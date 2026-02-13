@@ -1,6 +1,6 @@
 {
-  "name": "CafeVibe：台灣跑咖私人地圖",
-  "description": "A personal cafe map for Taiwan with flavor profiling, custom records, and Google Maps integration.",
+  "name": "跑咖｜台灣咖啡私人地圖",
+  "description": "A personal cafe map for Taiwan with flavor profiling, custom records, and shareable notes.",
   "requestFramePermissions": [
     "geolocation"
   ]
