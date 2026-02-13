@@ -1,0 +1,7 @@
+{
+  "name": "CafeVibe：台灣跑咖私人地圖",
+  "description": "A personal cafe map for Taiwan with flavor profiling, custom records, and Google Maps integration.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
